@@ -26,7 +26,7 @@
 #endif
 
 static struct RClass *_class_v8;
-static mrb_value funcs;
+static mrb_value functable;
 
 typedef struct {
   void* v8context;
@@ -35,7 +35,7 @@ typedef struct {
 } mrb_v8context;
 
 char*
-_v8wrap_callback(unsigned int id, char* name, char* code) {
+_v8wrap_callback(char* id, char* name, char* code) {
   puts("foo");
   return NULL;
 }
@@ -74,6 +74,7 @@ mrb_v8_init(mrb_state *mrb, mrb_value self)
   mrb_iv_set(mrb, self, mrb_intern(mrb, "context"), mrb_obj_value(
     Data_Wrap_Struct(mrb, mrb->object_class,
     &v8context_type, (void*) context)));
+  mrb_hash_set(mrb, functable, mrb_funcall(mrb, self, "inspect", 0, NULL), mrb_hash_new(mrb));
   return self;
 }
 
@@ -117,7 +118,6 @@ mrb_v8_eval(mrb_state *mrb, mrb_value self)
   return _v8_exec(mrb, context->v8context, arg);
 }
 
-/*
 static mrb_value
 mrb_v8_add_func(mrb_state *mrb, mrb_value self)
 {
@@ -133,17 +133,20 @@ mrb_v8_add_func(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid argument");
   }
 
-  mrb_ary_push(mrb, funcs, func);
+  mrb_value id = mrb_funcall(mrb, self, "inspect", 0, NULL);
+  mrb_value funcs = mrb_hash_get(mrb, functable, id);
+  mrb_hash_set(mrb, funcs, name, func);
   mrb_value str = mrb_str_new_cstr(mrb, "");
   mrb_str_catf(mrb, str,
-    "function {{.name}}() { return _mrb_v8_call(%d, \"%s\", JSON.stringify([].slice.call(arguments))); }",
+    "function %s() { return _mrb_v8_call(\"\", \"%s\", JSON.stringify([].slice.call(arguments))); }",
+    RSTRING_PTR(name),
+    RSTRING_PTR(id),
     RSTRING_PTR(name),
     RARRAY_LEN(funcs));
   _v8_exec(mrb, context->v8context, str);
 
   return mrb_nil_value();
 }
-*/
 
 /*********************************************************
  * register
@@ -156,10 +159,13 @@ mrb_mruby_v8_gem_init(mrb_state* mrb) {
   _class_v8 = mrb_define_class(mrb, "V8", mrb->object_class);
   mrb_define_method(mrb, _class_v8, "initialize", mrb_v8_init, ARGS_NONE());
   mrb_define_method(mrb, _class_v8, "eval", mrb_v8_eval, ARGS_ANY());
-  //mrb_define_method(mrb, _class_v8, "add_func", mrb_v8_add_func, ARGS_REQ(1));
+  mrb_define_method(mrb, _class_v8, "add_func", mrb_v8_add_func, ARGS_REQ(1));
   ARENA_RESTORE;
 
   v8_init(&_v8wrap_callback);
+
+  functable = mrb_hash_new(mrb);
+  mrb_define_const(mrb, _class_v8, "$FUNCTABLE", functable);
 }
 
 /* vim:set et ts=2 sts=2 sw=2 tw=0: */

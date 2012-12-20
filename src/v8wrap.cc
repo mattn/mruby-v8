@@ -39,13 +39,13 @@ from_json(std::string str) {
 
 v8::Handle<v8::Value>
 _mrb_v8_call(const v8::Arguments& args) {
-  uint32_t id = args[0]->ToUint32()->Value();
+  v8::String::Utf8Value id(args[0]);
   v8::String::Utf8Value name(args[1]);
   v8::String::Utf8Value argv(args[2]);
   //v8::HandleScope scope;
   v8::TryCatch try_catch;
   char* retv;
-  retv = _v8wrap_callback((unsigned int) id, (char*) *name, (char*) *argv);
+  retv = _v8wrap_callback(*id, *name, *argv);
   if (retv != NULL) {
     v8::Handle<v8::Value> ret = from_json(retv);
     free(retv);

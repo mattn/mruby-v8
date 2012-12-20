@@ -26,6 +26,7 @@
 #endif
 
 static struct RClass *_class_v8;
+static mrb_value funcs;
 
 typedef struct {
   void* v8context;
@@ -35,6 +36,7 @@ typedef struct {
 
 char*
 _v8wrap_callback(unsigned int id, char* name, char* code) {
+  puts("foo");
   return NULL;
 }
 
@@ -76,21 +78,9 @@ mrb_v8_init(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
-mrb_v8_eval(mrb_state *mrb, mrb_value self)
+_v8_exec(mrb_state *mrb, void* v8context, mrb_value str)
 {
-  mrb_value value_context;
-  mrb_v8context* context = NULL;
-  mrb_value arg;
-
-  mrb_get_args(mrb, "S", &arg);
-
-  value_context = mrb_iv_get(mrb, self, mrb_intern(mrb, "context"));
-  Data_Get_Struct(mrb, value_context, &v8context_type, context);
-  if (!context) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid argument");
-  }
-
-  char* ret = v8_execute(context->v8context, RSTRING_PTR(arg));
+  char* ret = v8_execute(v8context, RSTRING_PTR(str));
   mrb_value val = mrb_nil_value();
   if (ret) {
     mrb_value str = mrb_str_new_cstr(mrb, "{\"value\":");
@@ -107,11 +97,48 @@ mrb_v8_eval(mrb_state *mrb, mrb_value self)
   return val;
 }
 
-/* TODO */
+static mrb_value
+mrb_v8_eval(mrb_state *mrb, mrb_value self)
+{
+  mrb_value value_context;
+  mrb_v8context* context = NULL;
+  mrb_value arg;
+
+  mrb_get_args(mrb, "S", &arg);
+
+  value_context = mrb_iv_get(mrb, self, mrb_intern(mrb, "context"));
+  Data_Get_Struct(mrb, value_context, &v8context_type, context);
+  if (!context) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid argument");
+  }
+
+  return _v8_exec(mrb, context->v8context, arg);
+}
+
 /*
 static mrb_value
 mrb_v8_add_func(mrb_state *mrb, mrb_value self)
 {
+  mrb_value value_context;
+  mrb_v8context* context = NULL;
+  mrb_value name, func;
+
+  mrb_get_args(mrb, "So", &name, &func);
+
+  value_context = mrb_iv_get(mrb, self, mrb_intern(mrb, "context"));
+  Data_Get_Struct(mrb, value_context, &v8context_type, context);
+  if (!context) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid argument");
+  }
+
+  mrb_ary_push(mrb, funcs, func);
+  mrb_value str = mrb_str_new_cstr(mrb, "");
+  mrb_str_catf(mrb, str,
+    "function {{.name}}() { return _mrb_v8_call(%d, \"%s\", JSON.stringify([].slice.call(arguments))); }",
+    RSTRING_PTR(name),
+    RARRAY_LEN(funcs));
+  _v8_exec(mrb, context->v8context, str);
+
   return mrb_nil_value();
 }
 */

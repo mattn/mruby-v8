@@ -46,9 +46,7 @@ _mrb_v8_call(const v8::Arguments& args) {
   v8::TryCatch try_catch;
   char* retv;
   retv = _v8wrap_callback((unsigned int) id, (char*) *name, (char*) *argv);
-  printf("[%p]\n", retv);
   if (retv != NULL) {
-    printf("[%s]\n", retv);
     v8::Handle<v8::Value> ret = from_json(retv);
     free(retv);
     return ret;

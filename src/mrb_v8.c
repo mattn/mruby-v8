@@ -93,6 +93,8 @@ _v8_exec(mrb_state *mrb, void* v8context, mrb_value str)
     args[0] = str;
     mrb_value hash = mrb_funcall_argv(mrb, mrb_obj_value(clazz), mrb_intern(mrb, "parse"), 1, args);
     val = mrb_hash_get(mrb, hash, mrb_str_new_cstr(mrb, "value"));
+  } else {
+    mrb_raise(mrb, E_RUNTIME_ERROR, v8_error(v8context));
   }
   return val;
 }

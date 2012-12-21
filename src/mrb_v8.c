@@ -164,13 +164,13 @@ mrb_v8_add_func(mrb_state *mrb, mrb_value self)
   mrb_value id = mrb_funcall(mrb, self, "inspect", 0, NULL);
   mrb_value funcs = mrb_hash_get(mrb, functable, id);
   mrb_hash_set(mrb, funcs, name, func);
-  mrb_value str = mrb_str_new_cstr(mrb, "function ");
+  mrb_value str = mrb_str_new_cstr(mrb, "(function(self) { self.");
   mrb_str_concat(mrb, str, name);
-  mrb_str_cat2(mrb, str, "() { return _mrb_v8_call(\"");
-  mrb_str_concat(mrb, str, id);
-  mrb_str_cat2(mrb, str, "\", \"");
-  mrb_str_concat(mrb, str, name);
-  mrb_str_cat2(mrb, str, "\", JSON.stringify([].slice.call(arguments))); }"),
+  mrb_str_cat2(mrb, str, " = function() { return _mrb_v8_call(");
+  mrb_str_concat(mrb, str, mrb_funcall(mrb, id, "inspect", 0, NULL));
+  mrb_str_cat2(mrb, str, ", ");
+  mrb_str_concat(mrb, str, mrb_funcall(mrb, name, "inspect", 0, NULL));
+  mrb_str_cat2(mrb, str, ", JSON.stringify([].slice.call(arguments))); }})(this)"),
   _v8_exec(mrb, context->v8context, str);
 
   return mrb_nil_value();

@@ -2,7 +2,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-typedef char* (*v8wrap_callback)(unsigned int, char*, char*);
+typedef char* (*v8wrap_callback)(char*, char*, char*);
 extern void v8_init(v8wrap_callback callback);
 extern void* v8_create();
 extern void v8_release(void* ctx);

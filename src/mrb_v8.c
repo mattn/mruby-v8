@@ -27,6 +27,7 @@
 
 static struct RClass *_class_v8;
 static mrb_value functable;
+static mrb_state* last_mrb = NULL;
 
 typedef struct {
   void* v8context;
@@ -34,10 +35,44 @@ typedef struct {
   mrb_state* mrb;
 } mrb_v8context;
 
+static mrb_value
+json_parse(mrb_state* mrb, const char* ptr) {
+  mrb_value val;
+  if (*ptr) {
+    mrb_value str = mrb_str_new_cstr(mrb, "{\"value\":");
+    mrb_str_cat2(mrb, str, ptr);
+    mrb_str_cat2(mrb, str, "}");
+    struct RClass* clazz = mrb_class_get(mrb, "JSON");
+    mrb_value args[1];
+    args[0] = str;
+    mrb_value hash = mrb_funcall_argv(mrb, mrb_obj_value(clazz), mrb_intern(mrb, "parse"), 1, args);
+    val = mrb_hash_get(mrb, hash, mrb_str_new_cstr(mrb, "value"));
+  } else {
+    val = mrb_nil_value();
+  }
+  return val;
+}
+
+static char*
+stringify_json(mrb_state* mrb, mrb_value val) {
+  struct RClass* clazz = mrb_class_get(mrb, "JSON");
+  mrb_value args[1];
+  args[0] = val;
+  val = mrb_funcall_argv(mrb, mrb_obj_value(clazz), mrb_intern(mrb, "stringify"), 1, args);
+  return strdup(RSTRING_PTR(val));
+}
+
 char*
-_v8wrap_callback(char* id, char* name, char* code) {
-  puts("foo");
-  return NULL;
+_v8wrap_callback(char* id, char* name, char* arguments) {
+  mrb_state* mrb = last_mrb;
+  mrb_value funcs = mrb_hash_get(mrb, functable, mrb_str_new_cstr(mrb, id));
+  if (mrb_nil_p(funcs)) {
+    return strdup("null");
+  }
+  mrb_value proc = mrb_hash_get(mrb, funcs, mrb_str_new_cstr(mrb, name));
+  mrb_value args = json_parse(mrb, arguments);
+  mrb_value val = mrb_yield_argv(mrb, proc, RARRAY_LEN(args), RARRAY_PTR(args));
+  return stringify_json(mrb, val);
 }
 
 static mrb_v8context*
@@ -78,25 +113,18 @@ mrb_v8_init(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+
 static mrb_value
 _v8_exec(mrb_state *mrb, void* v8context, mrb_value str)
 {
+  last_mrb = mrb;
   char* ret = v8_execute(v8context, RSTRING_PTR(str));
   mrb_value val = mrb_nil_value();
-  if (ret) {
-    mrb_value str = mrb_str_new_cstr(mrb, "{\"value\":");
-    mrb_str_cat2(mrb, str, ret);
-    mrb_str_cat2(mrb, str, "}");
-    free(ret);
-
-    struct RClass* clazz = mrb_class_get(mrb, "JSON");
-    mrb_value args[1];
-    args[0] = str;
-    mrb_value hash = mrb_funcall_argv(mrb, mrb_obj_value(clazz), mrb_intern(mrb, "parse"), 1, args);
-    val = mrb_hash_get(mrb, hash, mrb_str_new_cstr(mrb, "value"));
-  } else {
+  if (!ret) {
     mrb_raise(mrb, E_RUNTIME_ERROR, v8_error(v8context));
   }
+  val = json_parse(mrb, ret);
+  free(ret);
   return val;
 }
 
@@ -125,7 +153,7 @@ mrb_v8_add_func(mrb_state *mrb, mrb_value self)
   mrb_v8context* context = NULL;
   mrb_value name, func;
 
-  mrb_get_args(mrb, "So", &name, &func);
+  mrb_get_args(mrb, "S&", &name, &func);
 
   value_context = mrb_iv_get(mrb, self, mrb_intern(mrb, "context"));
   Data_Get_Struct(mrb, value_context, &v8context_type, context);
@@ -136,13 +164,13 @@ mrb_v8_add_func(mrb_state *mrb, mrb_value self)
   mrb_value id = mrb_funcall(mrb, self, "inspect", 0, NULL);
   mrb_value funcs = mrb_hash_get(mrb, functable, id);
   mrb_hash_set(mrb, funcs, name, func);
-  mrb_value str = mrb_str_new_cstr(mrb, "");
-  mrb_str_catf(mrb, str,
-    "function %s() { return _mrb_v8_call(\"\", \"%s\", JSON.stringify([].slice.call(arguments))); }",
-    RSTRING_PTR(name),
-    RSTRING_PTR(id),
-    RSTRING_PTR(name),
-    RARRAY_LEN(funcs));
+  mrb_value str = mrb_str_new_cstr(mrb, "function ");
+  mrb_str_concat(mrb, str, name);
+  mrb_str_cat2(mrb, str, "() { return _mrb_v8_call(\"");
+  mrb_str_concat(mrb, str, id);
+  mrb_str_cat2(mrb, str, "\", \"");
+  mrb_str_concat(mrb, str, name);
+  mrb_str_cat2(mrb, str, "\", JSON.stringify([].slice.call(arguments))); }"),
   _v8_exec(mrb, context->v8context, str);
 
   return mrb_nil_value();

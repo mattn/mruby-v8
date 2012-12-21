@@ -42,7 +42,6 @@ _mrb_v8_call(const v8::Arguments& args) {
   v8::String::Utf8Value id(args[0]);
   v8::String::Utf8Value name(args[1]);
   v8::String::Utf8Value argv(args[2]);
-  //v8::HandleScope scope;
   v8::TryCatch try_catch;
   char* retv;
   retv = _v8wrap_callback(*id, *name, *argv);
@@ -140,10 +139,7 @@ report_exception(v8::TryCatch& try_catch) {
 char*
 v8_execute(void *ctx, const char* source) {
   V8Context *context = static_cast<V8Context *>(ctx);
-  //v8::HandleScope scope;
-
   v8::Context::Scope context_scope(context->context());
-  //v8::Context::Scope context_scope(v8::Context::GetCurrent());
   v8::TryCatch try_catch;
 
   context->err("");

@@ -133,9 +133,9 @@ mrb_v8_eval(mrb_state *mrb, mrb_value self)
 {
   mrb_value value_context;
   mrb_v8context* context = NULL;
-  mrb_value arg;
+  mrb_value expr;
 
-  mrb_get_args(mrb, "S", &arg);
+  mrb_get_args(mrb, "S", &expr);
 
   value_context = mrb_iv_get(mrb, self, mrb_intern(mrb, "context"));
   Data_Get_Struct(mrb, value_context, &v8context_type, context);
@@ -143,7 +143,7 @@ mrb_v8_eval(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid argument");
   }
 
-  return _v8_exec(mrb, context->v8context, arg);
+  return _v8_exec(mrb, context->v8context, expr);
 }
 
 static mrb_value

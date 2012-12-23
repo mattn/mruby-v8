@@ -2,9 +2,13 @@ GEM := mruby-v8
 
 include $(MAKEFILE_4_GEM)
 
-INCLUDE += -I$(MRUBY_ROOT)/include
-INCLUDE += -Iinclude
-CFLAGS  += $(INCLUDE) -g -O3
+CFLAGS += -I$(MRUBY_ROOT)/include
+MRUBY_CFLAGS += -I$(MRUBY_ROOT)/include
+ifeq ($(OS),Windows_NT)
+MRUBY_LIBS += -lv8
+else
+MRUBY_LIBS += -lv8
+endif
 
 GEM_C_FILES := $(wildcard $(SRC_DIR)/*.c)
 GEM_OBJECTS := $(patsubst %.c, %.o, $(GEM_C_FILES))

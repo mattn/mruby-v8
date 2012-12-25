@@ -2,12 +2,10 @@ GEM := mruby-v8
 
 include $(MAKEFILE_4_GEM)
 
-CFLAGS += -I$(MRUBY_ROOT)/include
-MRUBY_CFLAGS += -I$(MRUBY_ROOT)/include
 ifeq ($(OS),Windows_NT)
-MRUBY_LIBS += -lv8
+MRUBY_LIBS = -lv8 -lstdc++
 else
-MRUBY_LIBS += -lv8
+MRUBY_LIBS = -lv8
 endif
 
 GEM_C_FILES := $(wildcard $(SRC_DIR)/*.c)

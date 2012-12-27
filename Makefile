@@ -2,11 +2,7 @@ GEM := mruby-v8
 
 include $(MAKEFILE_4_GEM)
 
-ifeq ($(OS),Windows_NT)
-MRUBY_LIBS = -lv8 -lstdc++
-else
-MRUBY_LIBS = -lv8
-endif
+MRUBY_LIBS = -lv8_base -lv8_nosnapshot -lstdc++
 
 GEM_C_FILES := $(wildcard $(SRC_DIR)/*.c)
 GEM_OBJECTS := $(patsubst %.c, %.o, $(GEM_C_FILES))

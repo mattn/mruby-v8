@@ -3,7 +3,7 @@ MRuby::Gem::Specification.new('mruby-v8') do |spec|
   spec.authors = 'mattn'
  
   if ENV['OS'] == 'Windows_NT'
-    spec.mruby_libs = '-lv8_base -lv8_nosnapshot -lstdc++ -lwinmm -lws2_32'
+    spec.mruby_libs = '-lv8 -lstdc++ -lwinmm -lws2_32'
   else
     spec.mruby_libs = '-lv8_base -lv8_nosnapshot -lstdc++'
   end

@@ -25,7 +25,6 @@
 #define ARENA_RESTORE
 #endif
 
-static struct RClass *_class_v8;
 static mrb_value functable;
 static mrb_state* last_mrb = NULL;
 
@@ -184,7 +183,7 @@ void
 mrb_mruby_v8_gem_init(mrb_state* mrb) {
   ARENA_SAVE;
 
-  _class_v8 = mrb_define_class(mrb, "V8", mrb->object_class);
+  struct RClass* _class_v8 = mrb_define_class(mrb, "V8", mrb->object_class);
   mrb_define_method(mrb, _class_v8, "initialize", mrb_v8_init, ARGS_NONE());
   mrb_define_method(mrb, _class_v8, "eval", mrb_v8_eval, ARGS_ANY());
   mrb_define_method(mrb, _class_v8, "add_func", mrb_v8_add_func, ARGS_REQ(1));

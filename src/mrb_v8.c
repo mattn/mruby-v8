@@ -10,6 +10,7 @@
 #include <mruby/variable.h>
 #include "v8wrap.h"
 #include <stdio.h>
+#include <string.h>
 #include <fcntl.h>
 
 #if 1
@@ -38,13 +39,15 @@ static mrb_value
 json_parse(mrb_state* mrb, const char* ptr) {
   mrb_value val;
   if (*ptr) {
+    struct RClass* clazz;
+    mrb_value args[1];
+    mrb_value hash;
     mrb_value str = mrb_str_new_cstr(mrb, "{\"value\":");
     mrb_str_cat2(mrb, str, ptr);
     mrb_str_cat2(mrb, str, "}");
-    struct RClass* clazz = mrb_class_get(mrb, "JSON");
-    mrb_value args[1];
+    clazz = mrb_class_get(mrb, "JSON");
     args[0] = str;
-    mrb_value hash = mrb_funcall_argv(mrb, mrb_obj_value(clazz), mrb_intern(mrb, "parse"), 1, args);
+    hash = mrb_funcall_argv(mrb, mrb_obj_value(clazz), mrb_intern(mrb, "parse"), 1, args);
     val = mrb_hash_get(mrb, hash, mrb_str_new_cstr(mrb, "value"));
   } else {
     val = mrb_nil_value();
@@ -65,12 +68,15 @@ char*
 _v8wrap_callback(char* id, char* name, char* arguments) {
   mrb_state* mrb = last_mrb;
   mrb_value funcs = mrb_hash_get(mrb, functable, mrb_str_new_cstr(mrb, id));
+  mrb_value proc;
+  mrb_value args;
+  mrb_value val;
   if (mrb_nil_p(funcs)) {
     return strdup("null");
   }
-  mrb_value proc = mrb_hash_get(mrb, funcs, mrb_str_new_cstr(mrb, name));
-  mrb_value args = json_parse(mrb, arguments);
-  mrb_value val = mrb_yield_argv(mrb, proc, RARRAY_LEN(args), RARRAY_PTR(args));
+  proc = mrb_hash_get(mrb, funcs, mrb_str_new_cstr(mrb, name));
+  args = json_parse(mrb, arguments);
+  val = mrb_yield_argv(mrb, proc, RARRAY_LEN(args), RARRAY_PTR(args));
   return stringify_json(mrb, val);
 }
 
@@ -116,9 +122,11 @@ mrb_v8_init(mrb_state *mrb, mrb_value self)
 static mrb_value
 _v8_exec(mrb_state *mrb, void* v8context, mrb_value str)
 {
+  char* ret;
+  mrb_value val;
   last_mrb = mrb;
-  char* ret = v8_execute(v8context, RSTRING_PTR(str));
-  mrb_value val = mrb_nil_value();
+  ret = v8_execute(v8context, RSTRING_PTR(str));
+  val = mrb_nil_value();
   if (!ret) {
     mrb_raise(mrb, E_RUNTIME_ERROR, v8_error(v8context));
   }
@@ -151,6 +159,9 @@ mrb_v8_add_func(mrb_state *mrb, mrb_value self)
   mrb_value value_context;
   mrb_v8context* context = NULL;
   mrb_value name, func;
+  mrb_value id;
+  mrb_value funcs;
+  mrb_value str;
 
   mrb_get_args(mrb, "S&", &name, &func);
 
@@ -160,10 +171,10 @@ mrb_v8_add_func(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid argument");
   }
 
-  mrb_value id = mrb_funcall(mrb, self, "inspect", 0, NULL);
-  mrb_value funcs = mrb_hash_get(mrb, functable, id);
+  id = mrb_funcall(mrb, self, "inspect", 0, NULL);
+  funcs = mrb_hash_get(mrb, functable, id);
   mrb_hash_set(mrb, funcs, name, func);
-  mrb_value str = mrb_str_new_cstr(mrb, "(function(self) { self.");
+  str = mrb_str_new_cstr(mrb, "(function(self) { self.");
   mrb_str_concat(mrb, str, name);
   mrb_str_cat2(mrb, str, " = function() { return _mrb_v8_call(");
   mrb_str_concat(mrb, str, mrb_funcall(mrb, id, "inspect", 0, NULL));
@@ -181,9 +192,10 @@ mrb_v8_add_func(mrb_state *mrb, mrb_value self)
 
 void
 mrb_mruby_v8_gem_init(mrb_state* mrb) {
+  struct RClass* _class_v8;
   ARENA_SAVE;
 
-  struct RClass* _class_v8 = mrb_define_class(mrb, "V8", mrb->object_class);
+  _class_v8 = mrb_define_class(mrb, "V8", mrb->object_class);
   mrb_define_method(mrb, _class_v8, "initialize", mrb_v8_init, ARGS_NONE());
   mrb_define_method(mrb, _class_v8, "eval", mrb_v8_eval, ARGS_ANY());
   mrb_define_method(mrb, _class_v8, "add_func", mrb_v8_add_func, ARGS_REQ(1));

@@ -9,7 +9,7 @@
 #include <mruby/class.h>
 #include <mruby/variable.h>
 #include "v8wrap.h"
-#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
 

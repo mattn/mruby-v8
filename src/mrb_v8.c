@@ -16,7 +16,7 @@
 #if 1
 #define ARENA_SAVE \
   int ai = mrb_gc_arena_save(mrb); \
-  if (ai == MRB_ARENA_SIZE) { \
+  if (ai == MRB_GC_ARENA_SIZE) { \
     mrb_raise(mrb, E_RUNTIME_ERROR, "arena overflow"); \
   }
 #define ARENA_RESTORE \
@@ -47,7 +47,7 @@ json_parse(mrb_state* mrb, const char* ptr) {
     mrb_str_cat2(mrb, str, "}");
     clazz = mrb_class_get(mrb, "JSON");
     args[0] = str;
-    hash = mrb_funcall_argv(mrb, mrb_obj_value(clazz), mrb_intern(mrb, "parse"), 1, args);
+    hash = mrb_funcall_argv(mrb, mrb_obj_value(clazz), mrb_intern_lit(mrb, "parse"), 1, args);
     val = mrb_hash_get(mrb, hash, mrb_str_new_cstr(mrb, "value"));
   } else {
     val = mrb_nil_value();
@@ -60,7 +60,7 @@ stringify_json(mrb_state* mrb, mrb_value val) {
   struct RClass* clazz = mrb_class_get(mrb, "JSON");
   mrb_value args[1];
   args[0] = val;
-  val = mrb_funcall_argv(mrb, mrb_obj_value(clazz), mrb_intern(mrb, "stringify"), 1, args);
+  val = mrb_funcall_argv(mrb, mrb_obj_value(clazz), mrb_intern_lit(mrb, "stringify"), 1, args);
   return strdup(RSTRING_PTR(val));
 }
 
@@ -111,7 +111,7 @@ mrb_v8_init(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_RUNTIME_ERROR, "can't alloc memory");
   }
   context->instance = self;
-  mrb_iv_set(mrb, self, mrb_intern(mrb, "context"), mrb_obj_value(
+  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "context"), mrb_obj_value(
     Data_Wrap_Struct(mrb, mrb->object_class,
     &v8context_type, (void*) context)));
   mrb_hash_set(mrb, functable, mrb_funcall(mrb, self, "inspect", 0, NULL), mrb_hash_new(mrb));
@@ -144,7 +144,7 @@ mrb_v8_eval(mrb_state *mrb, mrb_value self)
 
   mrb_get_args(mrb, "S", &expr);
 
-  value_context = mrb_iv_get(mrb, self, mrb_intern(mrb, "context"));
+  value_context = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "context"));
   Data_Get_Struct(mrb, value_context, &v8context_type, context);
   if (!context) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid argument");
@@ -165,7 +165,7 @@ mrb_v8_add_func(mrb_state *mrb, mrb_value self)
 
   mrb_get_args(mrb, "S&", &name, &func);
 
-  value_context = mrb_iv_get(mrb, self, mrb_intern(mrb, "context"));
+  value_context = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "context"));
   Data_Get_Struct(mrb, value_context, &v8context_type, context);
   if (!context) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid argument");

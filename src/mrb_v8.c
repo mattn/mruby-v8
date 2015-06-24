@@ -196,9 +196,9 @@ mrb_mruby_v8_gem_init(mrb_state* mrb) {
   ARENA_SAVE;
 
   _class_v8 = mrb_define_class(mrb, "V8", mrb->object_class);
-  mrb_define_method(mrb, _class_v8, "initialize", mrb_v8_init, ARGS_NONE());
-  mrb_define_method(mrb, _class_v8, "eval", mrb_v8_eval, ARGS_ANY());
-  mrb_define_method(mrb, _class_v8, "add_func", mrb_v8_add_func, ARGS_REQ(1));
+  mrb_define_method(mrb, _class_v8, "initialize", mrb_v8_init, MRB_ARGS_NONE());
+  mrb_define_method(mrb, _class_v8, "eval", mrb_v8_eval, MRB_ARGS_ANY());
+  mrb_define_method(mrb, _class_v8, "add_func", mrb_v8_add_func, MRB_ARGS_REQ(1));
   ARENA_RESTORE;
 
   v8_init(&_v8wrap_callback);
